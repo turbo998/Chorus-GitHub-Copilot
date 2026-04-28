@@ -1,5 +1,5 @@
-import { McpTransport } from './transport';
-import { ChorusSessionManager } from './session';
+import { McpTransport } from './transport.js';
+import { ChorusSessionManager } from './session.js';
 
 export interface ChorusMcpClientOptions {
   serverUrl: string;

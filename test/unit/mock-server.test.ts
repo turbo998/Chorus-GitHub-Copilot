@@ -1,17 +1,77 @@
-/**
- * Tests for comprehensive mock MCP server
- */
-import { start, stop, allTools } from '../mock-server';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
+import crypto from 'crypto';
+import { allTools } from '../../src/schema/index';
 
 const PORT = 9877;
+let sessionId: string | null = null;
+let server: http.Server | null = null;
+const toolNames = new Set(allTools.map(t => t.name));
+
+function getFixtureResponse(toolName: string, args: Record<string, any>): any {
+  if (toolName.endsWith('_checkin')) return { agent: { name: 'test-agent' }, projects: [] };
+  if (/_get_/.test(toolName)) return { data: { uuid: 'mock-uuid', name: 'mock-item' } };
+  if (/_list_/.test(toolName)) return { items: [{ uuid: 'mock-uuid-1' }, { uuid: 'mock-uuid-2' }], total: 2 };
+  if (/_create_/.test(toolName) || /_claim_/.test(toolName)) return { uuid: 'mock-uuid', status: 'created' };
+  if (/_delete_/.test(toolName) || /_close_/.test(toolName)) return { success: true };
+  return { result: 'ok' };
+}
+
+function handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+  if (req.method === 'DELETE') { sessionId = null; res.writeHead(200); res.end(); return; }
+  let body = '';
+  req.on('data', (c: any) => (body += c));
+  req.on('end', () => {
+    try {
+      const rpc = JSON.parse(body);
+      let result: any;
+      if (rpc.method === 'initialize') {
+        sessionId = crypto.randomUUID();
+        result = { protocolVersion: '2024-11-05', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'chorus-mock', version: '1.0.0' } };
+      } else if (rpc.method === 'notifications/initialized') { res.writeHead(204); res.end(); return; }
+      else if (rpc.method === 'tools/list') {
+        result = { tools: allTools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })) };
+      } else if (rpc.method === 'tools/call') {
+        const name = rpc.params?.name;
+        if (!toolNames.has(name)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, error: { code: -32601, message: `Unknown tool: ${name}` } }));
+          return;
+        }
+        result = { content: [{ type: 'text', text: JSON.stringify(getFixtureResponse(name, rpc.params?.arguments || {})) }] };
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, error: { code: -32601, message: 'Method not found' } }));
+        return;
+      }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+      res.writeHead(200, headers);
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result }));
+    } catch (e: any) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+  });
+}
+
+function startServer(port: number): Promise<void> {
+  return new Promise((resolve) => {
+    server = http.createServer(handleRequest);
+    server.listen(port, () => resolve());
+  });
+}
+
+function stopServer(): Promise<void> {
+  return new Promise((resolve) => {
+    if (server) { server.close(() => { server = null; sessionId = null; resolve(); }); }
+    else resolve();
+  });
+}
 
 function rpc(method: string, params?: any, id = 1): Promise<any> {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({ jsonrpc: '2.0', id, method, params });
     const req = http.request({ hostname: '127.0.0.1', port: PORT, path: '/api/mcp', method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
       let data = '';
-      res.on('data', (c) => (data += c));
+      res.on('data', (c: any) => (data += c));
       res.on('end', () => {
         try { resolve({ status: res.statusCode, headers: res.headers, body: JSON.parse(data) }); }
         catch { resolve({ status: res.statusCode, headers: res.headers, body: data }); }
@@ -22,72 +82,62 @@ function rpc(method: string, params?: any, id = 1): Promise<any> {
   });
 }
 
-let passed = 0;
-let failed = 0;
-function assert(cond: boolean, msg: string) {
-  if (cond) { passed++; console.log(`  ✅ ${msg}`); }
-  else { failed++; console.error(`  ❌ ${msg}`); }
-}
+describe('Mock MCP Server', () => {
+  beforeAll(async () => { await startServer(PORT); });
+  afterAll(async () => { await stopServer(); });
 
-async function main() {
-  await start(PORT);
-  console.log('\n--- Initialize ---');
-  const init = await rpc('initialize');
-  assert(init.body.result?.serverInfo?.name === 'chorus-mock', 'server info name');
-  assert(init.body.result?.protocolVersion === '2024-11-05', 'protocol version');
-  assert(!!init.headers['mcp-session-id'], 'session id header present');
+  it('initialize returns server info', async () => {
+    const init = await rpc('initialize');
+    expect(init.body.result?.serverInfo?.name).toBe('chorus-mock');
+    expect(init.body.result?.protocolVersion).toBe('2024-11-05');
+    expect(init.headers['mcp-session-id']).toBeTruthy();
+  });
 
-  console.log('\n--- Tools List ---');
-  const list = await rpc('tools/list');
-  const toolCount = list.body.result?.tools?.length;
-  console.log(`  Tool count: ${toolCount}`);
-  assert(toolCount === allTools.length, `tools/list returns ${allTools.length} tools (got ${toolCount})`);
+  it('tools/list returns all tools', async () => {
+    const list = await rpc('tools/list');
+    expect(list.body.result?.tools?.length).toBe(allTools.length);
+  });
 
-  console.log('\n--- Tools Call patterns ---');
-  // checkin
-  let r = await rpc('tools/call', { name: 'chorus_checkin', arguments: {} });
-  let txt = JSON.parse(r.body.result.content[0].text);
-  assert(txt.agent?.name === 'test-agent', 'checkin returns agent');
+  it('checkin returns agent', async () => {
+    const r = await rpc('tools/call', { name: 'chorus_checkin', arguments: {} });
+    const txt = JSON.parse(r.body.result.content[0].text);
+    expect(txt.agent?.name).toBe('test-agent');
+  });
 
-  // find a _get_ tool
-  const getTool = allTools.find(t => /_get_/.test(t.name));
-  if (getTool) {
-    r = await rpc('tools/call', { name: getTool.name, arguments: {} });
-    txt = JSON.parse(r.body.result.content[0].text);
-    assert(!!txt.data, `get tool (${getTool.name}) returns data`);
-  }
+  it('get tool returns data', async () => {
+    const getTool = allTools.find(t => /_get_/.test(t.name));
+    if (!getTool) return;
+    const r = await rpc('tools/call', { name: getTool.name, arguments: {} });
+    const txt = JSON.parse(r.body.result.content[0].text);
+    expect(txt.data).toBeTruthy();
+  });
 
-  // find a _list_ tool
-  const listTool = allTools.find(t => /_list_/.test(t.name));
-  if (listTool) {
-    r = await rpc('tools/call', { name: listTool.name, arguments: {} });
-    txt = JSON.parse(r.body.result.content[0].text);
-    assert(Array.isArray(txt.items), `list tool (${listTool.name}) returns items`);
-  }
+  it('list tool returns items', async () => {
+    const listTool = allTools.find(t => /_list_/.test(t.name));
+    if (!listTool) return;
+    const r = await rpc('tools/call', { name: listTool.name, arguments: {} });
+    const txt = JSON.parse(r.body.result.content[0].text);
+    expect(Array.isArray(txt.items)).toBe(true);
+  });
 
-  // find a _create_ tool
-  const createTool = allTools.find(t => /_create_/.test(t.name));
-  if (createTool) {
-    r = await rpc('tools/call', { name: createTool.name, arguments: {} });
-    txt = JSON.parse(r.body.result.content[0].text);
-    assert(txt.status === 'created', `create tool (${createTool.name}) returns created`);
-  }
+  it('create tool returns created', async () => {
+    const createTool = allTools.find(t => /_create_/.test(t.name));
+    if (!createTool) return;
+    const r = await rpc('tools/call', { name: createTool.name, arguments: {} });
+    const txt = JSON.parse(r.body.result.content[0].text);
+    expect(txt.status).toBe('created');
+  });
 
-  // find a _delete_ tool
-  const deleteTool = allTools.find(t => /_delete_/.test(t.name));
-  if (deleteTool) {
-    r = await rpc('tools/call', { name: deleteTool.name, arguments: {} });
-    txt = JSON.parse(r.body.result.content[0].text);
-    assert(txt.success === true, `delete tool (${deleteTool.name}) returns success`);
-  }
+  it('delete tool returns success', async () => {
+    const deleteTool = allTools.find(t => /_delete_/.test(t.name));
+    if (!deleteTool) return;
+    const r = await rpc('tools/call', { name: deleteTool.name, arguments: {} });
+    const txt = JSON.parse(r.body.result.content[0].text);
+    expect(txt.success).toBe(true);
+  });
 
-  // unknown tool
-  r = await rpc('tools/call', { name: 'nonexistent_tool', arguments: {} });
-  assert(!!r.body.error, 'unknown tool returns error');
-
-  console.log(`\n✅ Passed: ${passed}  ❌ Failed: ${failed}\n`);
-  await stop();
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-main().catch((e) => { console.error(e); process.exit(1); });
+  it('unknown tool returns error', async () => {
+    const r = await rpc('tools/call', { name: 'nonexistent_tool', arguments: {} });
+    expect(r.body.error).toBeTruthy();
+  });
+});

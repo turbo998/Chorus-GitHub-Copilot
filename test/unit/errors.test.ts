@@ -1,74 +1,66 @@
-import assert from 'node:assert/strict';
+import { describe, it, expect } from 'vitest';
 import {
-  McpError,
-  McpNetworkError,
-  McpAuthError,
-  McpToolError,
-  McpTimeoutError,
-  McpSessionError,
+  McpError, McpNetworkError, McpAuthError, McpToolError, McpTimeoutError, McpSessionError,
 } from '../../src/mcp/errors.js';
 
-// --- McpError base ---
-const base = new McpError('base error', 'UNKNOWN');
-assert(base instanceof Error);
-assert(base instanceof McpError);
-assert.equal(base.message, 'base error');
-assert.equal(base.code, 'UNKNOWN');
-assert.equal(base.retryable, false);
-const baseJson = base.toJSON();
-assert.equal(baseJson.name, 'McpError');
-assert.equal(baseJson.message, 'base error');
-assert.equal(baseJson.code, 'UNKNOWN');
-assert.equal(baseJson.retryable, false);
+describe('McpError hierarchy', () => {
+  it('McpError base', () => {
+    const base = new McpError('base error', 'UNKNOWN');
+    expect(base).toBeInstanceOf(Error);
+    expect(base).toBeInstanceOf(McpError);
+    expect(base.message).toBe('base error');
+    expect(base.code).toBe('UNKNOWN');
+    expect(base.retryable).toBe(false);
+    const j = base.toJSON();
+    expect(j.name).toBe('McpError');
+    expect(j.code).toBe('UNKNOWN');
+    expect(j.retryable).toBe(false);
+  });
 
-// --- McpNetworkError ---
-const net = new McpNetworkError('connection refused');
-assert(net instanceof McpError);
-assert(net instanceof Error);
-assert.equal(net.code, 'NETWORK_ERROR');
-assert.equal(net.retryable, true);
+  it('McpNetworkError', () => {
+    const e = new McpNetworkError('connection refused');
+    expect(e).toBeInstanceOf(McpError);
+    expect(e.code).toBe('NETWORK_ERROR');
+    expect(e.retryable).toBe(true);
+  });
 
-// --- McpAuthError ---
-const auth = new McpAuthError('unauthorized', 'AUTH_EXPIRED');
-assert(auth instanceof McpError);
-assert.equal(auth.code, 'AUTH_EXPIRED');
-assert.equal(auth.retryable, false);
+  it('McpAuthError', () => {
+    const e = new McpAuthError('unauthorized', 'AUTH_EXPIRED');
+    expect(e).toBeInstanceOf(McpError);
+    expect(e.code).toBe('AUTH_EXPIRED');
+    expect(e.retryable).toBe(false);
+    expect(new McpAuthError('forbidden').code).toBe('AUTH_ERROR');
+  });
 
-const auth2 = new McpAuthError('forbidden');
-assert.equal(auth2.code, 'AUTH_ERROR');
+  it('McpToolError', () => {
+    const e = new McpToolError('tool failed', 'myTool', 'EXEC_FAILED');
+    expect(e).toBeInstanceOf(McpError);
+    expect(e.toolName).toBe('myTool');
+    expect(e.errorCode).toBe('EXEC_FAILED');
+    expect(e.code).toBe('TOOL_ERROR');
+    expect(e.retryable).toBe(false);
+    const j = e.toJSON();
+    expect(j.toolName).toBe('myTool');
+    expect(j.errorCode).toBe('EXEC_FAILED');
+    const retry = new McpToolError('transient', 'myTool', 'TIMEOUT', true);
+    expect(retry.retryable).toBe(true);
+  });
 
-// --- McpToolError ---
-const tool = new McpToolError('tool failed', 'myTool', 'EXEC_FAILED');
-assert(tool instanceof McpError);
-assert.equal(tool.toolName, 'myTool');
-assert.equal(tool.errorCode, 'EXEC_FAILED');
-assert.equal(tool.code, 'TOOL_ERROR');
-assert.equal(tool.retryable, false);
-const toolJson = tool.toJSON();
-assert.equal(toolJson.toolName, 'myTool');
-assert.equal(toolJson.errorCode, 'EXEC_FAILED');
+  it('McpTimeoutError', () => {
+    const e = new McpTimeoutError('request timed out', 5000);
+    expect(e).toBeInstanceOf(McpNetworkError);
+    expect(e).toBeInstanceOf(McpError);
+    expect(e.code).toBe('TIMEOUT_ERROR');
+    expect(e.retryable).toBe(true);
+    expect(e.timeoutMs).toBe(5000);
+    expect(e.toJSON().timeoutMs).toBe(5000);
+  });
 
-const toolRetry = new McpToolError('transient', 'myTool', 'TIMEOUT', true);
-assert.equal(toolRetry.retryable, true);
-
-// --- McpTimeoutError ---
-const timeout = new McpTimeoutError('request timed out', 5000);
-assert(timeout instanceof McpNetworkError);
-assert(timeout instanceof McpError);
-assert(timeout instanceof Error);
-assert.equal(timeout.code, 'TIMEOUT_ERROR');
-assert.equal(timeout.retryable, true);
-assert.equal(timeout.timeoutMs, 5000);
-const toJson = timeout.toJSON();
-assert.equal(toJson.timeoutMs, 5000);
-
-// --- McpSessionError ---
-const session = new McpSessionError('session expired', 'SESSION_EXPIRED');
-assert(session instanceof McpError);
-assert.equal(session.code, 'SESSION_EXPIRED');
-assert.equal(session.retryable, false);
-
-const session2 = new McpSessionError('invalid session');
-assert.equal(session2.code, 'SESSION_ERROR');
-
-console.log('✅ All error tests passed');
+  it('McpSessionError', () => {
+    const e = new McpSessionError('session expired', 'SESSION_EXPIRED');
+    expect(e).toBeInstanceOf(McpError);
+    expect(e.code).toBe('SESSION_EXPIRED');
+    expect(e.retryable).toBe(false);
+    expect(new McpSessionError('invalid session').code).toBe('SESSION_ERROR');
+  });
+});

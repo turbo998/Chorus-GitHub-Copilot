@@ -7,7 +7,15 @@
  */
 
 import * as vscode from 'vscode';
-import { ChorusMcpClient } from './chorus-mcp-client';
+import { ChorusMcpClient } from './chorus-mcp-client.js';
+import { SkillsService } from './skills/service.js';
+import { HookResolver } from './hooks/resolver.js';
+import { HookRunner } from './hooks/runner.js';
+import { HookLifecycle } from './hooks/lifecycle.js';
+import { ReviewerAgent } from './reviewer/agent.js';
+import { GitDiffService } from './reviewer/git-diff.js';
+import { ContextBuilder } from './context/builder.js';
+import { SkillsContextProvider } from './context/skills-provider.js';
 
 interface ChorusMcpConfigLocal {
   serverUrl: string;
@@ -17,6 +25,11 @@ import { allTools, ToolDefinition } from './schema/index.js';
 
 let mcpClient: ChorusMcpClient;
 let initialized = false;
+let skillsService: SkillsService | undefined;
+let hookLifecycle: HookLifecycle | undefined;
+let contextBuilder: ContextBuilder | undefined;
+let reviewerAgent: ReviewerAgent | undefined;
+let fileWatcher: vscode.Disposable | undefined;
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -160,8 +173,9 @@ async function handleChatRequest(
 
   try {
     await ensureInitialized();
-  } catch (e: any) {
-    stream.markdown(`⚠️ **Chorus Connection Error**\n\n${e.message}\n\nPlease configure \`chorus.serverUrl\` and \`chorus.apiKey\` in VS Code settings.`);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    stream.markdown(`⚠️ **Chorus Connection Error**\n\n${msg}\n\nPlease configure \`chorus.serverUrl\` and \`chorus.apiKey\` in VS Code settings.`);
     return {};
   }
 
@@ -172,6 +186,16 @@ async function handleChatRequest(
     return handleTasksCommand(request, stream);
   }
 
+  // Build context from providers
+  let contextPrefix = '';
+  if (contextBuilder) {
+    try {
+      contextPrefix = await contextBuilder.build();
+    } catch (e: unknown) {
+      console.error('[Chorus Copilot] Context build error:', e);
+    }
+  }
+
   // Default handler: provide context about available tools
   const enabledModules = getEnabledModules();
   const enabledTools = allTools.filter(t => enabledModules.includes(t.module));
@@ -179,7 +203,7 @@ async function handleChatRequest(
 
   stream.markdown(`### 🎵 Chorus for Copilot
 
-You said: *${request.prompt}*
+${contextPrefix ? `**Context:**\n${contextPrefix}\n\n` : ''}You said: *${request.prompt}*
 
 I have **${enabledTools.length} Chorus tools** available. Use **Agent Mode** for the best experience — Copilot will automatically call the right tools.
 
@@ -241,11 +265,45 @@ export function activate(context: vscode.ExtensionContext) {
   // Initialize MCP client
   mcpClient = new ChorusMcpClient(getConfig());
 
+  // Initialize Week 2 modules
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+
+  if (workspaceRoot) {
+    // Skills
+    skillsService = new SkillsService(workspaceRoot);
+    skillsService.load().catch(e => console.error('[Chorus Copilot] Skills load error:', e));
+    try {
+      const watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(workspaceRoot, '.chorus/skills/**/*.md')
+      );
+      watcher.onDidChange(() => skillsService?.load().catch(e => console.error('[Chorus Copilot] Skills reload error:', e)));
+      watcher.onDidCreate(() => skillsService?.load().catch(e => console.error('[Chorus Copilot] Skills reload error:', e)));
+      watcher.onDidDelete(() => skillsService?.load().catch(e => console.error('[Chorus Copilot] Skills reload error:', e)));
+      fileWatcher = watcher;
+      context.subscriptions.push(watcher);
+    } catch (e: unknown) {
+      console.error('[Chorus Copilot] File watcher error:', e);
+    }
+
+    // Hooks
+    const hookResolver = new HookResolver(workspaceRoot);
+    const hookRunner = new HookRunner();
+    hookLifecycle = new HookLifecycle(hookResolver, hookRunner);
+
+    // Reviewer
+    const gitDiff = new GitDiffService();
+    reviewerAgent = new ReviewerAgent(mcpClient, skillsService, gitDiff);
+
+    // Context
+    contextBuilder = new ContextBuilder();
+    contextBuilder.addProvider(new SkillsContextProvider(skillsService, ['context']));
+  }
+
   // Listen for config changes
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('chorus')) {
-        mcpClient.disconnect().catch(() => {});
+        mcpClient.disconnect().catch(e => console.error('[Chorus Copilot] Disconnect error:', e));
         const cfg = getConfig();
         mcpClient = new ChorusMcpClient(cfg);
         initialized = false;
@@ -273,6 +331,10 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate(): Promise<void> {
+  if (fileWatcher) {
+    fileWatcher.dispose();
+    fileWatcher = undefined;
+  }
   if (mcpClient) {
     await mcpClient.disconnect();
   }

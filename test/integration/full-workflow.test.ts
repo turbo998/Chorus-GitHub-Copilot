@@ -1,135 +1,140 @@
-/**
- * Full workflow integration test covering all 6 modules:
- *   Developer, PM, Admin, Session, Core, and Query tools.
- *
- * Starts mock server → creates ChorusMcpClient → exercises end-to-end flow → disconnects.
- */
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
-import { start, stop } from '../mock-server';
+import crypto from 'crypto';
+import { allTools } from '../../src/schema/index';
 import { ChorusMcpClient } from '../../src/mcp/client';
 
-const PORT = 9877; // avoid collision with other tests
+const PORT = 9878;
 const BASE = `http://localhost:${PORT}/api/mcp`;
+let sessionId: string | null = null;
+let server: http.Server | null = null;
+const toolNames = new Set(allTools.map(t => t.name));
 
-let server: http.Server;
-let client: ChorusMcpClient;
+function getFixtureResponse(toolName: string, args: Record<string, any>): any {
+  if (toolName.endsWith('_checkin')) return { agent: { name: 'test-agent' }, projects: [] };
+  if (/_get_/.test(toolName)) return { data: { uuid: 'mock-uuid', name: 'mock-item' } };
+  if (/_list_/.test(toolName)) return { items: [{ uuid: 'mock-uuid-1' }, { uuid: 'mock-uuid-2' }], total: 2 };
+  if (/_create_/.test(toolName) || /_claim_/.test(toolName)) return { uuid: 'mock-uuid', status: 'created' };
+  if (/_delete_/.test(toolName) || /_close_/.test(toolName)) return { success: true };
+  return { result: 'ok' };
+}
+
+function handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+  if (req.method === 'DELETE') { sessionId = null; res.writeHead(200); res.end(); return; }
+  let body = '';
+  req.on('data', (c: any) => (body += c));
+  req.on('end', () => {
+    try {
+      const rpc = JSON.parse(body);
+      let result: any;
+      if (rpc.method === 'initialize') {
+        sessionId = crypto.randomUUID();
+        result = { protocolVersion: '2024-11-05', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'chorus-mock', version: '1.0.0' } };
+      } else if (rpc.method === 'notifications/initialized') { res.writeHead(204); res.end(); return; }
+      else if (rpc.method === 'tools/list') {
+        result = { tools: allTools.map(t => ({ name: t.name, description: t.description, inputSchema: t.inputSchema })) };
+      } else if (rpc.method === 'tools/call') {
+        const name = rpc.params?.name;
+        if (!toolNames.has(name)) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, error: { code: -32601, message: `Unknown tool: ${name}` } }));
+          return;
+        }
+        result = { content: [{ type: 'text', text: JSON.stringify(getFixtureResponse(name, rpc.params?.arguments || {})) }] };
+      } else {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, error: { code: -32601, message: 'Method not found' } }));
+        return;
+      }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (sessionId) headers['Mcp-Session-Id'] = sessionId;
+      res.writeHead(200, headers);
+      res.end(JSON.stringify({ jsonrpc: '2.0', id: rpc.id, result }));
+    } catch (e: any) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+  });
+}
+
+function startServer(port: number): Promise<void> {
+  return new Promise((resolve) => {
+    server = http.createServer(handleRequest);
+    server.listen(port, () => resolve());
+  });
+}
+function stopServer(): Promise<void> {
+  return new Promise((resolve) => {
+    if (server) { server.close(() => { server = null; sessionId = null; resolve(); }); } else resolve();
+  });
+}
 
 function parse(result: any): any {
   if (result?.content?.[0]?.text) return JSON.parse(result.content[0].text);
   return result;
 }
 
-async function assert(label: string, fn: () => Promise<void>) {
-  try {
-    await fn();
-    console.log(`  ✅ ${label}`);
-  } catch (e: any) {
-    console.error(`  ❌ ${label}: ${e.message}`);
-    process.exitCode = 1;
-  }
-}
+describe('Full workflow integration', () => {
+  let client: ChorusMcpClient;
 
-async function main() {
-  console.log('🚀 Starting integration tests...\n');
+  beforeAll(async () => { await startServer(PORT); });
+  afterAll(async () => { await stopServer(); });
 
-  // ── Setup ──
-  server = await start(PORT);
-  client = new ChorusMcpClient({
-    serverUrl: BASE,
-    apiKey: 'test-key',
-    autoSession: true,
-    timeout: 5000,
-  });
-
-  // ── Connect ──
-  await assert('connect()', async () => {
+  it('connect', async () => {
+    client = new ChorusMcpClient({ serverUrl: BASE, apiKey: 'test-key', autoSession: true, timeout: 5000 });
     await client.connect();
-    if (!client.isConnected) throw new Error('not connected');
+    expect(client.isConnected).toBe(true);
   });
 
-  // ── Checkin (developer core) ──
-  await assert('checkin()', async () => {
+  it('checkin', async () => {
     const r = parse(await client.checkin());
-    if (!r.agent) throw new Error('missing agent in checkin response');
+    expect(r.agent).toBeTruthy();
   });
 
-  // ── Developer workflow ──
-  await assert('chorus_list_projects', async () => {
+  it('chorus_list_projects', async () => {
     const r = parse(await client.callTool('chorus_list_projects'));
-    if (!r.items || r.total !== 2) throw new Error('unexpected list response');
+    expect(r.items).toBeDefined();
+    expect(r.total).toBe(2);
   });
 
-  await assert('chorus_get_available_tasks', async () => {
+  it('chorus_get_available_tasks', async () => {
     const r = parse(await client.callTool('chorus_get_available_tasks', { projectUuid: 'test-proj' }));
-    if (!r.data) throw new Error('expected data in get response');
+    expect(r.data).toBeTruthy();
   });
 
-  await assert('chorus_claim_task', async () => {
+  it('chorus_claim_task', async () => {
     const r = parse(await client.callTool('chorus_claim_task', { taskId: 'test-task' }));
-    if (!r.uuid) throw new Error('expected uuid in claim response');
+    expect(r.uuid).toBeTruthy();
   });
 
-  await assert('chorus_report_work', async () => {
+  it('chorus_report_work', async () => {
     const r = parse(await client.callTool('chorus_report_work', { taskId: 'test-task', summary: 'done' }));
-    if (!r.result) throw new Error('expected result');
+    expect(r.result).toBeTruthy();
   });
 
-  await assert('chorus_submit_for_verify', async () => {
+  it('chorus_submit_for_verify', async () => {
     const r = parse(await client.callTool('chorus_submit_for_verify', { taskId: 'test-task', notes: 'ready' }));
-    if (!r.result) throw new Error('expected result');
+    expect(r.result).toBeTruthy();
   });
 
-  // ── PM tool ──
-  await assert('chorus_pm_create_idea', async () => {
-    const r = parse(await client.callTool('chorus_pm_create_idea', {
-      projectId: 'test-proj',
-      title: 'New Feature',
-      description: 'A great idea',
-    }));
-    if (!r.uuid) throw new Error('expected uuid in create response');
+  it('chorus_pm_create_idea', async () => {
+    const r = parse(await client.callTool('chorus_pm_create_idea', { projectId: 'test-proj', title: 'New Feature', description: 'A great idea' }));
+    expect(r.uuid).toBeTruthy();
   });
 
-  // ── Admin tool ──
-  await assert('chorus_admin_verify_task', async () => {
-    const r = parse(await client.callTool('chorus_admin_verify_task', {
-      taskId: 'test-task',
-      status: 'approved',
-    }));
-    if (!r.result) throw new Error('expected result');
+  it('chorus_admin_verify_task', async () => {
+    const r = parse(await client.callTool('chorus_admin_verify_task', { taskId: 'test-task', status: 'approved' }));
+    expect(r.result).toBeTruthy();
   });
 
-  // ── Session tools ──
-  await assert('chorus_create_session', async () => {
-    const r = parse(await client.callTool('chorus_create_session', {
-      projectId: 'test-proj',
-      role: 'developer',
-    }));
-    if (!r.uuid) throw new Error('expected uuid in session create');
+  it('chorus_create_session', async () => {
+    const r = parse(await client.callTool('chorus_create_session', { projectId: 'test-proj', role: 'developer' }));
+    expect(r.uuid).toBeTruthy();
   });
 
-  // ── Disconnect ──
-  await assert('disconnect()', async () => {
+  it('disconnect', async () => {
     await client.disconnect();
-    if (client.isConnected) throw new Error('still connected');
+    expect(client.isConnected).toBe(false);
   });
 
-  // ── Verify post-disconnect throws ──
-  await assert('callTool after disconnect throws', async () => {
-    try {
-      await client.callTool('chorus_checkin');
-      throw new Error('should have thrown');
-    } catch (e: any) {
-      if (!e.message.includes('Not connected')) throw e;
-    }
+  it('callTool after disconnect throws', async () => {
+    await expect(client.callTool('chorus_checkin')).rejects.toThrow('Not connected');
   });
-
-  // ── Teardown ──
-  await stop();
-  console.log('\n🏁 Integration tests complete.');
-}
-
-main().catch((e) => {
-  console.error('Fatal:', e);
-  process.exitCode = 1;
-  stop();
 });

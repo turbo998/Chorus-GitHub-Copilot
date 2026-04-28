@@ -1,4 +1,4 @@
-import { McpAuthError, McpNetworkError, McpTimeoutError, McpToolError } from './errors';
+import { McpAuthError, McpNetworkError, McpTimeoutError, McpToolError } from './errors.js';
 
 export interface McpTransportOptions {
   baseUrl: string;

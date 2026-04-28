@@ -1,28 +1,31 @@
-import assert from 'node:assert';
+import { describe, it, expect } from 'vitest';
 import { allTools, getToolsByModule } from '../../src/schema/index';
 import type { ToolDefinition } from '../../src/schema/types';
 
-// Total count
-assert.strictEqual(allTools.length, 83, `Expected 83 tools, got ${allTools.length}`);
+describe('schema all tools', () => {
+  it('has 83 tools total', () => {
+    expect(allTools.length).toBe(83);
+  });
 
-// Module counts
-const moduleCounts: Record<string, number> = { public: 29, developer: 5, session: 8, pm: 24, admin: 14, presence: 3 };
-for (const [mod, count] of Object.entries(moduleCounts)) {
-  const tools = getToolsByModule(mod as ToolDefinition['module']);
-  assert.strictEqual(tools.length, count, `Module '${mod}': expected ${count}, got ${tools.length}`);
-}
+  it('correct module counts', () => {
+    const moduleCounts: Record<string, number> = { public: 29, developer: 5, session: 8, pm: 24, admin: 14, presence: 3 };
+    for (const [mod, count] of Object.entries(moduleCounts)) {
+      expect(getToolsByModule(mod as ToolDefinition['module']).length).toBe(count);
+    }
+  });
 
-// No duplicate names
-const names = allTools.map(t => t.name);
-const dupes = names.filter((n, i) => names.indexOf(n) !== i);
-assert.strictEqual(dupes.length, 0, `Duplicate tool names: ${dupes.join(', ')}`);
+  it('no duplicate names', () => {
+    const names = allTools.map(t => t.name);
+    const dupes = names.filter((n, i) => names.indexOf(n) !== i);
+    expect(dupes.length).toBe(0);
+  });
 
-// Every tool has required fields
-for (const t of allTools) {
-  assert.ok(t.name, 'Missing name');
-  assert.ok(t.module, 'Missing module');
-  assert.ok(t.description, 'Missing description');
-  assert.ok(t.inputSchema, 'Missing inputSchema');
-}
-
-console.log('✅ All schema tests passed (83 tools, no duplicates, correct module counts)');
+  it('every tool has required fields', () => {
+    for (const t of allTools) {
+      expect(t.name).toBeTruthy();
+      expect(t.module).toBeTruthy();
+      expect(t.description).toBeTruthy();
+      expect(t.inputSchema).toBeDefined();
+    }
+  });
+});
