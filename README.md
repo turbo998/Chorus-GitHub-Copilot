@@ -50,10 +50,21 @@ Add to your VS Code `settings.json`:
 
 ```json
 {
-  "chorus.url": "https://your-chorus-instance.com",
+  "chorus.serverUrl": "https://your-chorus-instance.com",
   "chorus.apiKey": "your-api-key"
 }
 ```
+
+#### All Settings | 所有配置项
+
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `chorus.serverUrl` | string | `""` | Chorus MCP server URL |
+| `chorus.apiKey` | string | `""` | Chorus API key |
+| `chorus.autoSession` | boolean | `true` | Auto-create session on connect |
+| `chorus.enabledModules` | string[] | `["public","developer","session","pm","admin","presence"]` | Tool modules to enable |
+| `chorus.requestTimeout` | number | `30000` | Request timeout in ms |
+| `chorus.heartbeatInterval` | number | `60000` | Session heartbeat interval in ms |
 
 ### 3. Use | 使用
 
