@@ -1,7 +1,12 @@
 /**
  * Chorus MCP Client — lightweight HTTP client for Chorus MCP server.
  * Implements JSON-RPC 2.0 over HTTP (Streamable Transport).
+ *
+ * NOTE: Prefer using ChorusMcpClient from './mcp/client' for new code.
  */
+
+// Re-export new high-level client for convenience
+export { ChorusMcpClient } from './mcp/client';
 
 interface McpRequest {
   jsonrpc: '2.0';
