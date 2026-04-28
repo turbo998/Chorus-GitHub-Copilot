@@ -1,6 +1,6 @@
 import assert from 'node:assert';
-import { allTools, getToolsByModule } from '../../src/schema/index.js';
-import type { ToolDefinition } from '../../src/schema/types.js';
+import { allTools, getToolsByModule } from '../../src/schema/index';
+import type { ToolDefinition } from '../../src/schema/types';
 
 // Total count
 assert.strictEqual(allTools.length, 83, `Expected 83 tools, got ${allTools.length}`);

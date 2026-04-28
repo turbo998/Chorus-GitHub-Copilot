@@ -1,4 +1,4 @@
-import type { ToolDefinition } from './types.js';
+import type { ToolDefinition } from './types';
 
 const p = (name: string, displayName: string, description: string, props: Record<string, {type: string; description: string}>, required?: string[], confirmationRequired?: boolean): ToolDefinition => ({
   name, module: 'public', displayName, description, modelDescription: description,

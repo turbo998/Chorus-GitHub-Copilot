@@ -11,3 +11,22 @@ export interface ToolDefinition {
   };
   confirmationRequired?: boolean;
 }
+
+export function tool(
+  name: string,
+  module: ToolDefinition['module'],
+  description: string,
+  properties: Record<string, { type: string; description: string }>,
+  required?: string[],
+  opts?: { confirmationRequired?: boolean }
+): ToolDefinition {
+  return {
+    name,
+    module,
+    displayName: name.replace(/^chorus_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    description,
+    modelDescription: description,
+    inputSchema: { type: 'object' as const, properties, ...(required?.length ? { required } : {}) },
+    ...opts,
+  };
+}

@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from './types.js';
+import { tool, type ToolDefinition } from './types';
 const p = (d: string) => ({ type: 'string', description: d });
 const M = 'pm' as const;
 
