@@ -19,7 +19,7 @@
         "id": "chorus-copilot.chorus",
         "name": "chorus",
         "fullName": "Chorus AI-DLC",
-        "description": "Interact with Chorus project management \u2014 checkin, tasks, proposals, and more",
+        "description": "Interact with Chorus project management — checkin, tasks, proposals, and more",
         "isSticky": false
       }
     ],
@@ -1854,9 +1854,12 @@
     "generate:tools": "npx tsx scripts/generate-package-tools.ts"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/vscode": "^1.95.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.24.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
     "typescript": "^5.0.0"
   }
 }
