@@ -7,7 +7,12 @@
  */
 
 import * as vscode from 'vscode';
-import { ChorusMcpClient, ChorusMcpConfig } from './chorus-mcp-client';
+import { ChorusMcpClient } from './chorus-mcp-client';
+
+interface ChorusMcpConfigLocal {
+  serverUrl: string;
+  apiKey: string;
+}
 import { allTools, ToolDefinition } from './schema/index.js';
 
 let mcpClient: ChorusMcpClient;
@@ -15,12 +20,16 @@ let initialized = false;
 
 // ─── Helpers ─────────────────────────────────────────────
 
-function getConfig(): ChorusMcpConfig {
+function getConfig(): ChorusMcpConfigLocal {
   const cfg = vscode.workspace.getConfiguration('chorus');
   return {
     serverUrl: cfg.get<string>('serverUrl', ''),
     apiKey: cfg.get<string>('apiKey', '')
   };
+}
+
+function isConfigured(config: ChorusMcpConfigLocal): boolean {
+  return !!(config.serverUrl && config.apiKey);
 }
 
 function getEnabledModules(): string[] {
@@ -29,11 +38,11 @@ function getEnabledModules(): string[] {
 }
 
 async function ensureInitialized(): Promise<void> {
-  if (!mcpClient.isConfigured()) {
+  if (!isConfigured(getConfig())) {
     throw new Error('Chorus not configured. Set chorus.serverUrl and chorus.apiKey in Settings.');
   }
   if (!initialized) {
-    await mcpClient.initialize();
+    await mcpClient.connect();
     initialized = true;
   }
 }
@@ -236,7 +245,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('chorus')) {
-        mcpClient.updateConfig(getConfig());
+        mcpClient.disconnect().catch(() => {});
+        const cfg = getConfig();
+        mcpClient = new ChorusMcpClient(cfg);
         initialized = false;
         console.log('[Chorus Copilot] Config updated');
       }
@@ -261,6 +272,8 @@ export function activate(context: vscode.ExtensionContext) {
   console.log(`[Chorus Copilot] Activated with ${enabledTools.length}/${allTools.length} tools (modules: ${enabledModules.join(', ')})`);
 }
 
-export function deactivate() {
-  mcpClient?.close();
+export async function deactivate(): Promise<void> {
+  if (mcpClient) {
+    await mcpClient.disconnect();
+  }
 }

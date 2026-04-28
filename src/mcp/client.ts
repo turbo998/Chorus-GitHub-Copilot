@@ -26,7 +26,7 @@ export class ChorusMcpClient {
       baseUrl: opts.serverUrl,
       apiKey: opts.apiKey,
       timeout: opts.timeout,
-      maxRetries: 0,
+      maxRetries: 3,
     });
     this.session = new ChorusSessionManager({
       transport: this.transport,

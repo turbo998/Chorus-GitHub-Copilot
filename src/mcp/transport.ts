@@ -23,6 +23,9 @@ export class McpTransport {
 
   constructor(opts: McpTransportOptions) {
     this.baseUrl = opts.baseUrl;
+    if (opts.baseUrl && !opts.baseUrl.startsWith('https://') && !opts.baseUrl.startsWith('http://localhost') && !opts.baseUrl.startsWith('http://127.0.0.1')) {
+      console.warn('WARNING: Chorus server URL is not HTTPS. API key may be transmitted in cleartext.');
+    }
     this.apiKey = opts.apiKey;
     this.timeout = opts.timeout ?? 30000;
     this.maxRetries = opts.maxRetries ?? 3;

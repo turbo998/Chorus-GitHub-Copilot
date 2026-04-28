@@ -30,7 +30,12 @@ export class ChorusSessionManager {
     await this.transport.request('initialize');
     if (this.autoSession) {
       const res = await this.transport.request('tools/call', { name: 'chorus_create_session', arguments: {} });
-      const data = JSON.parse(res.content[0].text);
+      let data: any;
+      try {
+        data = JSON.parse(res.content[0].text);
+      } catch (err) {
+        throw new Error(`Failed to parse session response: ${err}`);
+      }
       this._chorusSessionId = data.session_id;
     }
     this._initialized = true;
@@ -42,7 +47,7 @@ export class ChorusSessionManager {
       this.transport.request('tools/call', {
         name: 'chorus_session_heartbeat',
         arguments: { session_id: this._chorusSessionId },
-      }).catch(() => {});
+      }).catch((err) => { console.warn('[Chorus] heartbeat failed:', err); });
     }, this.heartbeatInterval);
   }
 
