@@ -16,6 +16,8 @@ import { ReviewerAgent } from './reviewer/agent.js';
 import { GitDiffService } from './reviewer/git-diff.js';
 import { ContextBuilder } from './context/builder.js';
 import { SkillsContextProvider } from './context/skills-provider.js';
+import { StateManager, StatusBarController } from './state/index.js';
+import { registerQuickAction } from './chat/quick-action.js';
 
 interface ChorusMcpConfigLocal {
   serverUrl: string;
@@ -30,6 +32,8 @@ let hookLifecycle: HookLifecycle | undefined;
 let contextBuilder: ContextBuilder | undefined;
 let reviewerAgent: ReviewerAgent | undefined;
 let fileWatcher: vscode.Disposable | undefined;
+let stateManager: StateManager | undefined;
+let statusBarController: StatusBarController | undefined;
 
 // ─── Helpers ─────────────────────────────────────────────
 
@@ -262,8 +266,24 @@ class ChorusToolHandler implements vscode.LanguageModelTool<Record<string, unkno
 export function activate(context: vscode.ExtensionContext) {
   console.log('[Chorus Copilot] Activating...');
 
+  // Initialize State Manager
+  stateManager = new StateManager();
+  stateManager.restore(context.globalState);
+
+  // Status Bar
+  const sbItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBarController = new StatusBarController(stateManager, sbItem);
+  context.subscriptions.push(sbItem);
+
   // Initialize MCP client
   mcpClient = new ChorusMcpClient(getConfig());
+
+  // Wire MCP connection events to state
+  mcpClient.on?.('connected', () => stateManager?.onConnected());
+  mcpClient.on?.('error', (err: string) => stateManager?.onError(err));
+
+  // Register quick action
+  registerQuickAction(context, mcpClient);
 
   // Initialize Week 2 modules
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -330,7 +350,19 @@ export function activate(context: vscode.ExtensionContext) {
   console.log(`[Chorus Copilot] Activated with ${enabledTools.length}/${allTools.length} tools (modules: ${enabledModules.join(', ')})`);
 }
 
-export async function deactivate(): Promise<void> {
+export async function deactivate(globalState?: { update(key: string, value: unknown): Thenable<void>; get<T>(key: string, defaultValue: T): T }): Promise<void> {
+  if (stateManager) {
+    if (globalState) {
+      await stateManager.persist(globalState);
+    }
+    stateManager.cancelReconnect();
+    stateManager.dispose();
+    stateManager = undefined;
+  }
+  if (statusBarController) {
+    statusBarController.dispose();
+    statusBarController = undefined;
+  }
   if (fileWatcher) {
     fileWatcher.dispose();
     fileWatcher = undefined;

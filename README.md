@@ -1,121 +1,77 @@
-# Chorus-GitHub-Copilot
+# Chorus for GitHub Copilot
 
-[![VS Code](https://img.shields.io/badge/VS%20Code-Extension-blue?logo=visualstudiocode)](https://code.visualstudio.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![MCP Protocol](https://img.shields.io/badge/MCP-Protocol-green)](https://modelcontextprotocol.io/)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
-[![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-Chat-black?logo=github)](https://github.com/features/copilot)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.95.0-blue)](https://code.visualstudio.com/)
 
-> Bridge Chorus AI-DLC platform to GitHub Copilot Chat via MCP protocol.
->
-> 通过 MCP 协议将 Chorus AI-DLC 平台桥接至 GitHub Copilot Chat。
+> Integrate **Chorus AI project management** with GitHub Copilot — 83 tools, skills injection, hooks, and automated code review.
 
----
+## ✨ Features
 
-## Architecture | 架构
+- **83 Language-Model Tools** — generated from the Chorus OpenAPI schema covering projects, tasks, ideas, proposals, documents, comments, activity, admin, and presence
+- **Chat Participant `@chorus`** — slash commands `/checkin`, `/tasks`, `/session`, `/help`
+- **Skills Injection** — load custom Markdown skills (with YAML frontmatter) into Copilot context
+- **Hook Lifecycle** — run shell scripts on pre/post events (e.g., lint before submit)
+- **Automated Code Review** — diff-aware review agent with configurable criteria
+- **MCP Transport** — SSE-based connection to any Chorus server instance
+- **Telemetry Guard** — opt-in only, disabled by default
 
-```mermaid
-graph LR
-    subgraph VS Code
-        A[Copilot Chat] -->|Chat Participant API| B[Chorus Extension]
-        B -->|Language Model Tools API| C[MCP Tool Provider]
-    end
-    C -->|JSON-RPC 2.0 / HTTP| D[Chorus AI-DLC Platform]
-```
+## 🚀 Quick Start
 
-## Features | 功能特性
+1. Install the extension from the VS Code Marketplace (or `code --install-extension turbo998.chorus-copilot`)
+2. Open **Settings** → search `chorus`
+3. Set `chorus.serverUrl` to your Chorus instance URL
+4. Set `chorus.apiKey` to your API key
+5. Open Copilot Chat and type `@chorus /tasks`
 
-- 🔗 **MCP Protocol Integration** — Seamless bridge between Copilot Chat and Chorus platform
-- 🛠️ **6 Core Tools (POC)** — Check-in, task discovery, claiming, reporting, and verification
-- 🎯 **41 Tools (Full)** — Complete coverage: 28 public + 8 session + 5 developer tools
-- 💬 **Natural Language** — Interact with Chorus via conversational AI in Copilot Chat
-- 🔐 **Secure Config** — API key and endpoint managed via VS Code settings
-- ⚡ **JSON-RPC 2.0** — Efficient communication over HTTP
-
----
-
-## Quick Start | 快速开始
-
-### 1. Install | 安装
-
-```bash
-git clone https://github.com/turbo998/Chorus-GitHub-Copilot.git
-cd Chorus-GitHub-Copilot
-npm install
-```
-
-### 2. Configure | 配置
-
-Add to your VS Code `settings.json`:
-
-```json
-{
-  "chorus.serverUrl": "https://your-chorus-instance.com",
-  "chorus.apiKey": "your-api-key"
-}
-```
-
-#### All Settings | 所有配置项
+## ⚙️ Configuration
 
 | Setting | Type | Default | Description |
 |---|---|---|---|
-| `chorus.serverUrl` | string | `""` | Chorus MCP server URL |
-| `chorus.apiKey` | string | `""` | Chorus API key |
-| `chorus.autoSession` | boolean | `true` | Auto-create session on connect |
-| `chorus.enabledModules` | string[] | `["public","developer","session","pm","admin","presence"]` | Tool modules to enable |
-| `chorus.requestTimeout` | number | `30000` | Request timeout in ms |
-| `chorus.heartbeatInterval` | number | `60000` | Session heartbeat interval in ms |
+| `chorus.serverUrl` | `string` | `""` | Chorus server URL |
+| `chorus.apiKey` | `string` | `""` | API key for authentication |
+| `chorus.autoSession` | `boolean` | `true` | Auto-start MCP session on activation |
+| `chorus.enabledModules` | `array` | `["pm","developer","session","public","admin","presence"]` | Tool modules to enable |
+| `chorus.requestTimeout` | `number` | `30000` | Request timeout in ms |
+| `chorus.telemetry.enabled` | `boolean` | `false` | Enable anonymous telemetry |
+| `chorus.heartbeatInterval` | `number` | `60000` | Session heartbeat interval in ms |
 
-### 3. Use | 使用
+## 🏗️ Architecture
 
-1. Press `F5` to launch the Extension Development Host
-2. Open Copilot Chat (`Ctrl+Shift+I`)
-3. Type `@chorus` followed by your request:
+```mermaid
+graph LR
+  A[Chorus OpenAPI Schema] -->|generate| B[VS Code Extension]
+  B -->|83 tools| C[GitHub Copilot Chat]
+  B -->|SSE transport| D[MCP Client]
+  D -->|HTTP| E[Chorus Server]
+  B -->|inject| F[Skills / Context]
+  B -->|lifecycle| G[Hooks]
+  B -->|diff review| H[Review Agent]
+```
+
+## 📁 Project Structure
 
 ```
-@chorus check me in
-@chorus what tasks are available?
-@chorus claim task #123
+src/
+├── extension.ts          # Entry point
+├── chorus-mcp-client.ts  # MCP client wrapper
+├── telemetry.ts          # Telemetry guard
+├── schema/               # 83 tools from OpenAPI
+├── mcp/                  # MCP transport & session
+├── context/              # Context builder & providers
+├── skills/               # Skills loader & parser
+├── hooks/                # Hook lifecycle runner
+└── reviewer/             # Code review agent
 ```
 
----
-
-## Tool Categories | 工具分类
-
-| Category 分类 | Count 数量 | Examples 示例 | Status 状态 |
-|---|---|---|---|
-| **Public 公共** | 28 | `checkin`, `get_available_tasks`, `list_tasks` | 🟡 Planned |
-| **Session 会话** | 8 | `claim_task`, `report_work`, `submit_for_verify` | 🟡 Planned |
-| **Developer 开发者** | 5 | Debug tools, diagnostics | 🟡 Planned |
-| **POC Core 核心** | 6 | `checkin`, `get_available_tasks`, `list_tasks`, `claim_task`, `report_work`, `submit_for_verify` | ✅ Done |
-
----
-
-## Roadmap | 开发路线
-
-- [x] POC — 6 core tools with MCP integration
-- [ ] Full public tool coverage (28 tools)
-- [ ] Session management tools (8 tools)
-- [ ] Developer tools (5 tools)
-- [ ] VSIX marketplace publishing
-- [ ] Multi-language task descriptions
-- [ ] Offline caching & retry logic
-
----
-
-## Contributing | 贡献指南
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/your-feature`
-3. Commit changes: `git commit -m "feat: add new tool"`
-4. Push and open a Pull Request
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Run tests: `npm test`
+4. Commit changes and open a Pull Request
 
-Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+See [docs/getting-started.md](docs/getting-started.md) for development setup.
 
-欢迎贡献！请 Fork 本仓库，创建特性分支，提交 PR。提交信息请遵循约定式提交规范。
+## 📄 License
 
----
-
-## License | 许可证
-
-[MIT](LICENSE)
+[MIT](LICENSE) © 2025 Chen Qi

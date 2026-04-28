@@ -1,17 +1,32 @@
 {
   "name": "chorus-copilot",
   "displayName": "Chorus for GitHub Copilot",
-  "description": "Bridge Chorus AI-DLC platform to GitHub Copilot Chat via MCP",
+  "description": "Integrate Chorus AI project management with GitHub Copilot — 83 tools, skills injection, hooks, automated code review",
   "version": "0.1.0",
   "publisher": "turbo998",
   "engines": {
     "vscode": "^1.95.0"
   },
   "categories": [
-    "AI",
+    "Machine Learning",
     "Chat"
   ],
-  "activationEvents": [],
+  "keywords": [
+    "chorus",
+    "copilot",
+    "mcp",
+    "ai",
+    "project-management"
+  ],
+  "icon": "assets/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/turbo998/Chorus-GitHub-Copilot"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "chatParticipants": [
@@ -1887,6 +1902,11 @@
           "default": 30000,
           "description": "Request timeout in ms"
         },
+        "chorus.telemetry.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable anonymous telemetry"
+        },
         "chorus.heartbeatInterval": {
           "type": "number",
           "default": 60000,
@@ -1900,8 +1920,8 @@
     "watch": "npm run build -- --watch",
     "package": "vsce package --no-dependencies",
     "generate:tools": "npx tsx scripts/generate-package-tools.ts",
-    "test": "npx tsx test/run-all.ts",
-    "test:unit": "npx tsx test/run-all.ts",
+    "test": "vitest run",
+    "test:unit": "vitest run test/unit",
     "test:integration": "npx tsx test/integration/full-workflow.test.ts"
   },
   "devDependencies": {
@@ -1911,6 +1931,7 @@
     "esbuild": "^0.24.0",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.1.5"
   }
 }
