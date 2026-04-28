@@ -3,6 +3,7 @@ import { ChatMemory } from '../../src/chat/memory';
 
 // Mock vscode
 const mockShowQuickPick = vi.fn();
+const mockShowErrorMessage = vi.fn();
 const mockRegisterCommand = vi.fn();
 const mockWithProgress = vi.fn();
 
@@ -10,6 +11,7 @@ vi.mock('vscode', () => ({
   window: {
     showQuickPick: mockShowQuickPick,
     withProgress: mockWithProgress,
+    showErrorMessage: mockShowErrorMessage,
   },
   commands: {
     registerCommand: mockRegisterCommand,
@@ -61,6 +63,28 @@ describe('ChatMemory', () => {
     const big = new ChatMemory(20);
     expect(big.getTokenBudget()).toBe(10000);
   });
+
+  it('evicts least-recently-used session when exceeding maxSessions', () => {
+    const mem = new ChatMemory(5, 3);
+    mem.store('s1', 'user', 'a');
+    mem.store('s2', 'user', 'b');
+    mem.store('s3', 'user', 'c');
+    // Access s1 to make it recent
+    mem.retrieve('s1');
+    // Adding s4 should evict s2 (least recently used)
+    mem.store('s4', 'user', 'd');
+    expect(mem.retrieve('s2')).toEqual([]);
+    expect(mem.retrieve('s1')).toHaveLength(1);
+    expect(mem.retrieve('s4')).toHaveLength(1);
+  });
+
+  it('clearAll removes all sessions', () => {
+    memory.store('s1', 'user', 'a');
+    memory.store('s2', 'user', 'b');
+    memory.clearAll();
+    expect(memory.retrieve('s1')).toEqual([]);
+    expect(memory.retrieve('s2')).toEqual([]);
+  });
 });
 
 describe('Quick Action', () => {
@@ -109,6 +133,19 @@ describe('Quick Action', () => {
     mockShowQuickPick.mockResolvedValueOnce(undefined);
     await handler();
     expect(mcpClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it('shows error message when callTool throws', async () => {
+    const { registerQuickAction } = await import('../../src/chat/quick-action');
+    const mcpClient = { callTool: vi.fn().mockRejectedValue(new Error('network down')) } as any;
+    const context = { subscriptions: [] } as any;
+
+    registerQuickAction(context, mcpClient);
+    const handler = (mockRegisterCommand as any)._handler;
+
+    mockShowQuickPick.mockResolvedValueOnce('Claim Task');
+    await handler();
+    expect(mockShowErrorMessage).toHaveBeenCalledWith('Chorus action failed: network down');
   });
 });
 

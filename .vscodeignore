@@ -10,5 +10,7 @@ PLAN*.md
 REVIEW*.md
 SECURITY*.md
 *.test.ts
+jest.config.*
+scripts/
 node_modules/
 .gitignore

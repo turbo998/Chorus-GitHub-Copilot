@@ -142,4 +142,14 @@ describe('StatusBarController', () => {
     expect(item.text).toContain('error');
     expect(item.color).toBe('red');
   });
+
+  it('dispose removes listener from stateManager', () => {
+    const item = { text: '', color: undefined as string | undefined, show: vi.fn(), dispose: vi.fn() };
+    const sm = new StateManager();
+    const controller = new StatusBarController(sm, item);
+    expect(sm.listenerCount('stateChange')).toBe(1);
+    controller.dispose();
+    expect(sm.listenerCount('stateChange')).toBe(0);
+    expect(item.dispose).toHaveBeenCalled();
+  });
 });

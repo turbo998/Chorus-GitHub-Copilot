@@ -2,6 +2,25 @@
 
 All notable changes to **Chorus for GitHub Copilot** will be documented here.
 
+## [0.2.0] — Week 4 (2025-06-27)
+
+### Added
+- Task dashboard webview in activity bar (`chorus.openDashboard` command)
+- Chat response formatter with Markdown tables and progress indicators
+- Quick-action buttons in chat responses
+- Conversation memory for multi-turn chat context
+- End-to-end test suite covering full activation → chat → tool lifecycle
+
+### Fixed
+- MCP session reconnection race condition on network flap
+- Status bar not updating after connection state change
+- Skills loader crash when `.chorus/skills/` directory missing
+- Hook runner timeout not respecting `chorus.requestTimeout` setting
+
+### Changed
+- Improved error messages for authentication failures
+- State manager now emits granular change events
+
 ## [0.1.0] — Week 3 (2025-06-20)
 
 ### Added

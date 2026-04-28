@@ -29,6 +29,29 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "chorus",
+          "title": "Chorus",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "chorus": [
+        {
+          "id": "chorus.taskDashboard",
+          "name": "Task Dashboard"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "chorus.openDashboard",
+        "title": "Chorus: Open Dashboard"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "chorus-copilot.chorus",

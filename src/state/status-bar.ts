@@ -12,12 +12,15 @@ export class StatusBarController {
   private item: StatusBarItem;
   private stateManager: StateManager;
 
+  private listener: () => void;
+
   constructor(stateManager: StateManager, item: StatusBarItem) {
     this.stateManager = stateManager;
     this.item = item;
+    this.listener = () => this.update();
     this.update();
     this.item.show();
-    stateManager.on('stateChange', () => this.update());
+    stateManager.on('stateChange', this.listener);
   }
 
   private update() {
@@ -40,6 +43,7 @@ export class StatusBarController {
   }
 
   dispose() {
+    this.stateManager.off('stateChange', this.listener);
     this.item.dispose();
   }
 }

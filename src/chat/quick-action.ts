@@ -19,7 +19,11 @@ export function registerQuickAction(
     });
     if (!selection) return;
     const action = ACTION_MAP[selection];
-    return mcpClient.callTool(action.tool, action.args);
+    try {
+      return await mcpClient.callTool(action.tool, action.args);
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Chorus action failed: ${err?.message ?? err}`);
+    }
   });
   context.subscriptions.push(disposable);
   return disposable;
