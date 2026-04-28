@@ -1,0 +1,129 @@
+{
+  "name": "chorus-copilot",
+  "displayName": "Chorus for GitHub Copilot",
+  "description": "Bridge Chorus AI-DLC platform to GitHub Copilot Chat via MCP",
+  "version": "0.1.0",
+  "publisher": "turbo998",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": ["AI", "Chat"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "chorus-copilot.chorus",
+        "name": "chorus",
+        "fullName": "Chorus AI-DLC",
+        "description": "Interact with Chorus project management — checkin, tasks, proposals, and more",
+        "isSticky": false
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "chorus_checkin",
+        "displayName": "Chorus Check-in",
+        "description": "Check in to Chorus — returns agent identity, project tracker, and unread notifications",
+        "modelDescription": "Check in to the Chorus AI-DLC platform. Call this first to get agent identity, assigned projects, and unread notifications. No parameters needed.",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "chorus_list_tasks",
+        "displayName": "List Chorus Tasks",
+        "description": "List tasks in a Chorus project",
+        "modelDescription": "List tasks in a Chorus project. Use projectUuid from checkin result. Optional filters: status (open/assigned/in_progress/to_verify/done/closed), priority (low/medium/high/critical).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": { "type": "string", "description": "Project UUID (required)" },
+            "status": { "type": "string", "description": "Filter by status" },
+            "priority": { "type": "string", "description": "Filter by priority" }
+          },
+          "required": ["projectUuid"]
+        }
+      },
+      {
+        "name": "chorus_get_available_tasks",
+        "displayName": "Get Available Tasks",
+        "description": "Get claimable tasks (status=open) in a project",
+        "modelDescription": "Get tasks that are available to claim (open status) in a Chorus project.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": { "type": "string", "description": "Project UUID (required)" }
+          },
+          "required": ["projectUuid"]
+        }
+      },
+      {
+        "name": "chorus_claim_task",
+        "displayName": "Claim Task",
+        "description": "Claim an open task (changes status to assigned)",
+        "modelDescription": "Claim an open task, assigning it to the current agent. The task must be in 'open' status.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskUuid": { "type": "string", "description": "Task UUID to claim (required)" }
+          },
+          "required": ["taskUuid"]
+        }
+      },
+      {
+        "name": "chorus_report_work",
+        "displayName": "Report Work Progress",
+        "description": "Report progress on a task",
+        "modelDescription": "Report work progress on a claimed task. Adds a progress comment and optionally updates task status.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskUuid": { "type": "string", "description": "Task UUID (required)" },
+            "report": { "type": "string", "description": "Progress report text (required)" },
+            "status": { "type": "string", "description": "Optional new status (in_progress, to_verify)" }
+          },
+          "required": ["taskUuid", "report"]
+        }
+      },
+      {
+        "name": "chorus_submit_for_verify",
+        "displayName": "Submit for Verification",
+        "description": "Submit a task for review/verification",
+        "modelDescription": "Submit a task for verification/review. Changes status from in_progress to to_verify.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskUuid": { "type": "string", "description": "Task UUID (required)" },
+            "summary": { "type": "string", "description": "Optional summary of work done" }
+          },
+          "required": ["taskUuid"]
+        }
+      }
+    ],
+    "configuration": {
+      "title": "Chorus for Copilot",
+      "properties": {
+        "chorus.serverUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Chorus server URL (e.g. https://chorus.example.com)"
+        },
+        "chorus.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Chorus API key (starts with cho_)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outdir=dist --platform=node --external:vscode --format=cjs --sourcemap",
+    "watch": "npm run build -- --watch",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.0.0"
+  }
+}
