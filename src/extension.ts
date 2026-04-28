@@ -53,12 +53,102 @@ function formatToolResult(result: unknown): string {
 
 // ─── Chat Participant ────────────────────────────────────
 
+async function handleCheckinCommand(
+  request: vscode.ChatRequest,
+  stream: vscode.ChatResponseStream
+): Promise<vscode.ChatResult> {
+  const prompt = request.prompt.trim();
+  // Expect: projectUuid taskUuid message
+  const parts = prompt.split(/\s+/);
+  if (parts.length < 3) {
+    stream.markdown(`⚠️ **Usage:** \`@chorus /checkin <projectUuid> <taskUuid> <message>\`\n\nProvide the project UUID, task UUID, and a check-in message.`);
+    return {};
+  }
+  const [projectUuid, taskUuid, ...messageParts] = parts;
+  const message = messageParts.join(' ');
+  stream.progress('Checking in to Chorus...');
+  const result = await mcpClient.callTool('chorus_checkin', { projectUuid, taskUuid, message });
+  const text = formatToolResult(result);
+  stream.markdown(`### ✅ Check-in Complete\n\n${text}`);
+  return {};
+}
+
+async function handleTasksCommand(
+  request: vscode.ChatRequest,
+  stream: vscode.ChatResponseStream
+): Promise<vscode.ChatResult> {
+  const projectUuid = request.prompt.trim();
+  if (!projectUuid) {
+    stream.markdown(`⚠️ **Usage:** \`@chorus /tasks <projectUuid>\`\n\nProvide a project UUID to list its tasks.`);
+    return {};
+  }
+  stream.progress('Fetching tasks...');
+  const result = await mcpClient.callTool('chorus_list_tasks', { projectUuid });
+  const text = formatToolResult(result);
+  stream.markdown(`### 📋 Tasks\n\n${text}`);
+  return {};
+}
+
+function handleSessionCommand(
+  stream: vscode.ChatResponseStream
+): vscode.ChatResult {
+  const config = getConfig();
+  const configured = !!(config.serverUrl && config.apiKey);
+  const enabledModules = getEnabledModules();
+  const enabledTools = allTools.filter(t => enabledModules.includes(t.module));
+
+  stream.markdown(`### 🔌 Session Status
+
+| Property | Value |
+|----------|-------|
+| **Server URL** | ${config.serverUrl || '_(not set)_'} |
+| **API Key** | ${config.apiKey ? '✅ configured' : '❌ not set'} |
+| **Initialized** | ${initialized ? '✅' : '❌'} |
+| **Configured** | ${configured ? '✅' : '❌'} |
+| **Enabled Modules** | ${enabledModules.join(', ')} |
+| **Tools Registered** | ${enabledTools.length} / ${allTools.length} |
+`);
+  return {};
+}
+
+function handleHelpCommand(
+  stream: vscode.ChatResponseStream
+): vscode.ChatResult {
+  const enabledModules = getEnabledModules();
+  const enabledTools = allTools.filter(t => enabledModules.includes(t.module));
+
+  stream.markdown(`### 🎵 Chorus for Copilot — Help
+
+**Slash Commands:**
+
+| Command | Description |
+|---------|-------------|
+| \`/checkin <project> <task> <msg>\` | Check in on a task |
+| \`/tasks <projectUuid>\` | List tasks in a project |
+| \`/session\` | Show current session status |
+| \`/help\` | Show this help message |
+
+**Tools:** ${enabledTools.length} tools registered across ${enabledModules.length} modules (${enabledModules.join(', ')}).
+
+**Tip:** In **Agent Mode**, just describe what you need and Copilot will call the right Chorus tools automatically.
+`);
+  return {};
+}
+
 async function handleChatRequest(
   request: vscode.ChatRequest,
   _context: vscode.ChatContext,
   stream: vscode.ChatResponseStream,
-  token: vscode.CancellationToken
+  _token: vscode.CancellationToken
 ): Promise<vscode.ChatResult> {
+  // Handle /help and /session without requiring initialization
+  if (request.command === 'help') {
+    return handleHelpCommand(stream);
+  }
+  if (request.command === 'session') {
+    return handleSessionCommand(stream);
+  }
+
   try {
     await ensureInitialized();
   } catch (e: any) {
@@ -66,17 +156,31 @@ async function handleChatRequest(
     return {};
   }
 
-  // Default: show help
+  if (request.command === 'checkin') {
+    return handleCheckinCommand(request, stream);
+  }
+  if (request.command === 'tasks') {
+    return handleTasksCommand(request, stream);
+  }
+
+  // Default handler: provide context about available tools
+  const enabledModules = getEnabledModules();
+  const enabledTools = allTools.filter(t => enabledModules.includes(t.module));
+  const toolList = enabledTools.map(t => `- **${t.displayName}** (\`${t.name}\`): ${t.description}`).join('\n');
+
   stream.markdown(`### 🎵 Chorus for Copilot
 
-Use **Agent Mode** to interact with Chorus tools naturally, or try:
+You said: *${request.prompt}*
 
-| Command | Description |
-|---------|-------------|
-| \`@chorus checkin\` | Check in to Chorus |
-| \`@chorus tasks <projectUuid>\` | List available tasks |
+I have **${enabledTools.length} Chorus tools** available. Use **Agent Mode** for the best experience — Copilot will automatically call the right tools.
 
-Or just describe what you need — Copilot will use Chorus tools automatically in **Agent Mode**.
+Or use a slash command: \`/checkin\`, \`/tasks\`, \`/session\`, \`/help\`
+
+<details><summary>Available Tools (${enabledTools.length})</summary>
+
+${toolList}
+
+</details>
 `);
   return {};
 }

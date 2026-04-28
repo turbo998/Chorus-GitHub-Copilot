@@ -14,51 +14,31 @@
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
-    "configuration": {
-      "title": "Chorus for GitHub Copilot",
-      "properties": {
-        "chorus.serverUrl": {
-          "type": "string",
-          "default": "",
-          "description": "Chorus MCP server URL"
-        },
-        "chorus.apiKey": {
-          "type": "string",
-          "default": "",
-          "description": "Chorus API key"
-        },
-        "chorus.autoSession": {
-          "type": "boolean",
-          "default": true,
-          "description": "Auto-create session on connect"
-        },
-        "chorus.enabledModules": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": ["public", "developer", "session", "pm", "admin", "presence"],
-          "description": "Tool modules to enable"
-        },
-        "chorus.requestTimeout": {
-          "type": "number",
-          "default": 30000,
-          "description": "Request timeout in ms"
-        },
-        "chorus.heartbeatInterval": {
-          "type": "number",
-          "default": 60000,
-          "description": "Session heartbeat interval in ms"
-        }
-      }
-    },
     "chatParticipants": [
       {
         "id": "chorus-copilot.chorus",
         "name": "chorus",
         "fullName": "Chorus AI-DLC",
         "description": "Interact with Chorus project management — checkin, tasks, proposals, and more",
-        "isSticky": false
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "checkin",
+            "description": "Check in on a task — provide projectUuid, taskUuid, and message"
+          },
+          {
+            "name": "tasks",
+            "description": "List tasks in a project — provide projectUuid"
+          },
+          {
+            "name": "session",
+            "description": "Show current Chorus session status"
+          },
+          {
+            "name": "help",
+            "description": "List available commands and tools"
+          }
+        ]
       }
     ],
     "languageModelTools": [
@@ -1870,17 +1850,40 @@
       }
     ],
     "configuration": {
-      "title": "Chorus for Copilot",
+      "title": "Chorus for GitHub Copilot",
       "properties": {
         "chorus.serverUrl": {
           "type": "string",
           "default": "",
-          "description": "Chorus server URL (e.g. https://chorus.example.com)"
+          "description": "Chorus MCP server URL"
         },
         "chorus.apiKey": {
           "type": "string",
           "default": "",
-          "description": "Chorus API key (starts with cho_)"
+          "description": "Chorus API key"
+        },
+        "chorus.autoSession": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-create session on connect"
+        },
+        "chorus.enabledModules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["public", "developer", "session", "pm", "admin", "presence"],
+          "description": "Tool modules to enable"
+        },
+        "chorus.requestTimeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "Request timeout in ms"
+        },
+        "chorus.heartbeatInterval": {
+          "type": "number",
+          "default": 60000,
+          "description": "Session heartbeat interval in ms"
         }
       }
     }
