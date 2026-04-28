@@ -7,7 +7,10 @@
   "engines": {
     "vscode": "^1.95.0"
   },
-  "categories": ["AI", "Chat"],
+  "categories": [
+    "AI",
+    "Chat"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -16,86 +19,1815 @@
         "id": "chorus-copilot.chorus",
         "name": "chorus",
         "fullName": "Chorus AI-DLC",
-        "description": "Interact with Chorus project management — checkin, tasks, proposals, and more",
+        "description": "Interact with Chorus project management \u2014 checkin, tasks, proposals, and more",
         "isSticky": false
       }
     ],
     "languageModelTools": [
       {
-        "name": "chorus_checkin",
-        "displayName": "Chorus Check-in",
-        "description": "Check in to Chorus — returns agent identity, project tracker, and unread notifications",
-        "modelDescription": "Check in to the Chorus AI-DLC platform. Call this first to get agent identity, assigned projects, and unread notifications. No parameters needed.",
-        "inputSchema": { "type": "object", "properties": {} }
-      },
-      {
-        "name": "chorus_list_tasks",
-        "displayName": "List Chorus Tasks",
-        "description": "List tasks in a Chorus project",
-        "modelDescription": "List tasks in a Chorus project. Use projectUuid from checkin result. Optional filters: status (open/assigned/in_progress/to_verify/done/closed), priority (low/medium/high/critical).",
+        "name": "chorus_get_project",
+        "displayName": "Get Project",
+        "description": "Get project details",
+        "modelDescription": "Get project details",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "projectUuid": { "type": "string", "description": "Project UUID (required)" },
-            "status": { "type": "string", "description": "Filter by status" },
-            "priority": { "type": "string", "description": "Filter by priority" }
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            }
           },
-          "required": ["projectUuid"]
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_list_projects",
+        "displayName": "List Projects",
+        "description": "List all projects",
+        "modelDescription": "List all projects",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_get_task",
+        "displayName": "Get Task",
+        "description": "Get task details",
+        "modelDescription": "Get task details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "taskUuid": {
+              "type": "string",
+              "description": "Task UUID"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "taskUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_list_tasks",
+        "displayName": "List Tasks",
+        "description": "List tasks in a project",
+        "modelDescription": "List tasks in a project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
         }
       },
       {
         "name": "chorus_get_available_tasks",
         "displayName": "Get Available Tasks",
-        "description": "Get claimable tasks (status=open) in a project",
-        "modelDescription": "Get tasks that are available to claim (open status) in a Chorus project.",
+        "description": "Get tasks available for assignment",
+        "modelDescription": "Get tasks available for assignment",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "projectUuid": { "type": "string", "description": "Project UUID (required)" }
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
           },
-          "required": ["projectUuid"]
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_create_tasks",
+        "displayName": "Create Tasks",
+        "description": "Create new tasks in a project",
+        "modelDescription": "Create new tasks in a project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "tasks": {
+              "type": "array",
+              "description": "Array of task objects to create"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "tasks"
+          ]
+        }
+      },
+      {
+        "name": "chorus_update_task",
+        "displayName": "Update Task",
+        "description": "Update an existing task",
+        "modelDescription": "Update an existing task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "taskUuid": {
+              "type": "string",
+              "description": "Task UUID"
+            },
+            "updates": {
+              "type": "object",
+              "description": "Task fields to update"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "taskUuid",
+            "updates"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_unblocked_tasks",
+        "displayName": "Get Unblocked Tasks",
+        "description": "Get tasks that are unblocked",
+        "modelDescription": "Get tasks that are unblocked",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_checkin",
+        "displayName": "Check In",
+        "description": "Check in on a task",
+        "modelDescription": "Check in on a task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "taskUuid": {
+              "type": "string",
+              "description": "Task UUID"
+            },
+            "message": {
+              "type": "string",
+              "description": "Check-in message"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "taskUuid",
+            "message"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_idea",
+        "displayName": "Get Idea",
+        "description": "Get idea details",
+        "modelDescription": "Get idea details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "ideaUuid": {
+              "type": "string",
+              "description": "Idea UUID"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "ideaUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_ideas",
+        "displayName": "Get Ideas",
+        "description": "List ideas in a project",
+        "modelDescription": "List ideas in a project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_available_ideas",
+        "displayName": "Get Available Ideas",
+        "description": "Get ideas available for review",
+        "modelDescription": "Get ideas available for review",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_proposal",
+        "displayName": "Get Proposal",
+        "description": "Get proposal details",
+        "modelDescription": "Get proposal details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "proposalUuid": {
+              "type": "string",
+              "description": "Proposal UUID"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "proposalUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_proposals",
+        "displayName": "Get Proposals",
+        "description": "List proposals in a project",
+        "modelDescription": "List proposals in a project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_document",
+        "displayName": "Get Document",
+        "description": "Get document details",
+        "modelDescription": "Get document details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "documentUuid": {
+              "type": "string",
+              "description": "Document UUID"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "documentUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_documents",
+        "displayName": "Get Documents",
+        "description": "List documents in a project",
+        "modelDescription": "List documents in a project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_activity",
+        "displayName": "Get Activity",
+        "description": "Get activity feed",
+        "modelDescription": "Get activity feed",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "projectUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_comments",
+        "displayName": "Get Comments",
+        "description": "Get comments on an entity",
+        "modelDescription": "Get comments on an entity",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "entityUuid": {
+              "type": "string",
+              "description": "Entity UUID"
+            },
+            "entityType": {
+              "type": "string",
+              "description": "Entity type (task, idea, etc.)"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "entityUuid",
+            "entityType"
+          ]
+        }
+      },
+      {
+        "name": "chorus_add_comment",
+        "displayName": "Add Comment",
+        "description": "Add a comment to an entity",
+        "modelDescription": "Add a comment to an entity",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "entityUuid": {
+              "type": "string",
+              "description": "Entity UUID"
+            },
+            "entityType": {
+              "type": "string",
+              "description": "Entity type"
+            },
+            "body": {
+              "type": "string",
+              "description": "Comment body"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "entityUuid",
+            "entityType",
+            "body"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_my_assignments",
+        "displayName": "Get My Assignments",
+        "description": "Get current user assignments",
+        "modelDescription": "Get current user assignments",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_get_notifications",
+        "displayName": "Get Notifications",
+        "description": "Get user notifications",
+        "modelDescription": "Get user notifications",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_mark_notification_read",
+        "displayName": "Mark Notification Read",
+        "description": "Mark a notification as read",
+        "modelDescription": "Mark a notification as read",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "notificationUuid": {
+              "type": "string",
+              "description": "Notification UUID"
+            }
+          },
+          "required": [
+            "notificationUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_elaboration",
+        "displayName": "Get Elaboration",
+        "description": "Get elaboration details",
+        "modelDescription": "Get elaboration details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "elaborationUuid": {
+              "type": "string",
+              "description": "Elaboration UUID"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "elaborationUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_answer_elaboration",
+        "displayName": "Answer Elaboration",
+        "description": "Answer an elaboration question",
+        "modelDescription": "Answer an elaboration question",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "elaborationUuid": {
+              "type": "string",
+              "description": "Elaboration UUID"
+            },
+            "answer": {
+              "type": "string",
+              "description": "Answer text"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "elaborationUuid",
+            "answer"
+          ]
+        }
+      },
+      {
+        "name": "chorus_search",
+        "displayName": "Search",
+        "description": "Search across project entities",
+        "modelDescription": "Search across project entities",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            },
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "chorus_search_mentionables",
+        "displayName": "Search Mentionables",
+        "description": "Search for mentionable users/entities",
+        "modelDescription": "Search for mentionable users/entities",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectUuid": {
+              "type": "string",
+              "description": "Project UUID"
+            },
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": [
+            "projectUuid",
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_project_group",
+        "displayName": "Get Project Group",
+        "description": "Get project group details",
+        "modelDescription": "Get project group details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupUuid": {
+              "type": "string",
+              "description": "Group UUID"
+            }
+          },
+          "required": [
+            "groupUuid"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_project_groups",
+        "displayName": "Get Project Groups",
+        "description": "List all project groups",
+        "modelDescription": "List all project groups",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "number",
+              "description": "Page number"
+            },
+            "pageSize": {
+              "type": "number",
+              "description": "Page size"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_get_group_dashboard",
+        "displayName": "Get Group Dashboard",
+        "description": "Get dashboard for a project group",
+        "modelDescription": "Get dashboard for a project group",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupUuid": {
+              "type": "string",
+              "description": "Group UUID"
+            }
+          },
+          "required": [
+            "groupUuid"
+          ]
         }
       },
       {
         "name": "chorus_claim_task",
         "displayName": "Claim Task",
-        "description": "Claim an open task (changes status to assigned)",
-        "modelDescription": "Claim an open task, assigning it to the current agent. The task must be in 'open' status.",
+        "description": "Claim a task for work",
+        "modelDescription": "Claim a task for work",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "taskUuid": { "type": "string", "description": "Task UUID to claim (required)" }
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
           },
-          "required": ["taskUuid"]
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_release_task",
+        "displayName": "Release Task",
+        "description": "Release a claimed task",
+        "modelDescription": "Release a claimed task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
+          },
+          "required": [
+            "taskId"
+          ]
         }
       },
       {
         "name": "chorus_report_work",
-        "displayName": "Report Work Progress",
-        "description": "Report progress on a task",
-        "modelDescription": "Report work progress on a claimed task. Adds a progress comment and optionally updates task status.",
+        "displayName": "Report Work",
+        "description": "Report work progress on a task",
+        "modelDescription": "Report work progress on a task",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "taskUuid": { "type": "string", "description": "Task UUID (required)" },
-            "report": { "type": "string", "description": "Progress report text (required)" },
-            "status": { "type": "string", "description": "Optional new status (in_progress, to_verify)" }
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Work summary"
+            }
           },
-          "required": ["taskUuid", "report"]
+          "required": [
+            "taskId",
+            "summary"
+          ]
         }
       },
       {
         "name": "chorus_submit_for_verify",
-        "displayName": "Submit for Verification",
-        "description": "Submit a task for review/verification",
-        "modelDescription": "Submit a task for verification/review. Changes status from in_progress to to_verify.",
+        "displayName": "Submit For Verify",
+        "description": "Submit task for verification",
+        "modelDescription": "Submit task for verification",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "taskUuid": { "type": "string", "description": "Task UUID (required)" },
-            "summary": { "type": "string", "description": "Optional summary of work done" }
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "notes": {
+              "type": "string",
+              "description": "Submission notes"
+            }
           },
-          "required": ["taskUuid"]
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_report_criteria_self_check",
+        "displayName": "Report Criteria Self Check",
+        "description": "Report self-check on acceptance criteria",
+        "modelDescription": "Report self-check on acceptance criteria",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "criteriaId": {
+              "type": "string",
+              "description": "Criteria ID"
+            },
+            "status": {
+              "type": "string",
+              "description": "Check status"
+            }
+          },
+          "required": [
+            "taskId",
+            "criteriaId",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "chorus_create_session",
+        "displayName": "Create Session",
+        "description": "Create a new work session",
+        "modelDescription": "Create a new work session",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            },
+            "role": {
+              "type": "string",
+              "description": "Session role"
+            }
+          },
+          "required": [
+            "projectId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_session",
+        "displayName": "Get Session",
+        "description": "Get session details",
+        "modelDescription": "Get session details",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            }
+          },
+          "required": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_list_sessions",
+        "displayName": "List Sessions",
+        "description": "List active sessions",
+        "modelDescription": "List active sessions",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_close_session",
+        "displayName": "Close Session",
+        "description": "Close a session",
+        "modelDescription": "Close a session",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            }
+          },
+          "required": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_reopen_session",
+        "displayName": "Reopen Session",
+        "description": "Reopen a closed session",
+        "modelDescription": "Reopen a closed session",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            }
+          },
+          "required": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_session_checkin_task",
+        "displayName": "Session Checkin Task",
+        "description": "Check in a task to session",
+        "modelDescription": "Check in a task to session",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            },
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
+          },
+          "required": [
+            "sessionId",
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_session_checkout_task",
+        "displayName": "Session Checkout Task",
+        "description": "Check out a task from session",
+        "modelDescription": "Check out a task from session",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            },
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
+          },
+          "required": [
+            "sessionId",
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_session_heartbeat",
+        "displayName": "Session Heartbeat",
+        "description": "Send session heartbeat",
+        "modelDescription": "Send session heartbeat",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "Session ID"
+            }
+          },
+          "required": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_create_idea",
+        "displayName": "Pm Create Idea",
+        "description": "Create a new idea",
+        "modelDescription": "Create a new idea",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Idea title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Idea description"
+            }
+          },
+          "required": [
+            "projectId",
+            "title"
+          ]
+        }
+      },
+      {
+        "name": "chorus_claim_idea",
+        "displayName": "Claim Idea",
+        "description": "Claim an idea",
+        "modelDescription": "Claim an idea",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ideaId": {
+              "type": "string",
+              "description": "Idea ID"
+            }
+          },
+          "required": [
+            "ideaId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_release_idea",
+        "displayName": "Release Idea",
+        "description": "Release a claimed idea",
+        "modelDescription": "Release a claimed idea",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ideaId": {
+              "type": "string",
+              "description": "Idea ID"
+            }
+          },
+          "required": [
+            "ideaId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_move_idea",
+        "displayName": "Move Idea",
+        "description": "Move idea to different status",
+        "modelDescription": "Move idea to different status",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ideaId": {
+              "type": "string",
+              "description": "Idea ID"
+            },
+            "status": {
+              "type": "string",
+              "description": "Target status"
+            }
+          },
+          "required": [
+            "ideaId",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_create_proposal",
+        "displayName": "Pm Create Proposal",
+        "description": "Create a proposal",
+        "modelDescription": "Create a proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description"
+            }
+          },
+          "required": [
+            "projectId",
+            "title"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_submit_proposal",
+        "displayName": "Pm Submit Proposal",
+        "description": "Submit proposal for review",
+        "modelDescription": "Submit proposal for review",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_reject_proposal",
+        "displayName": "Pm Reject Proposal",
+        "description": "Reject a proposal",
+        "modelDescription": "Reject a proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Rejection reason"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_revoke_proposal",
+        "displayName": "Pm Revoke Proposal",
+        "description": "Revoke a submitted proposal",
+        "modelDescription": "Revoke a submitted proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_validate_proposal",
+        "displayName": "Pm Validate Proposal",
+        "description": "Validate proposal completeness",
+        "modelDescription": "Validate proposal completeness",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_create_document",
+        "displayName": "Pm Create Document",
+        "description": "Create a document",
+        "modelDescription": "Create a document",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content"
+            }
+          },
+          "required": [
+            "proposalId",
+            "title"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_update_document",
+        "displayName": "Pm Update Document",
+        "description": "Update a document",
+        "modelDescription": "Update a document",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "documentId": {
+              "type": "string",
+              "description": "Document ID"
+            },
+            "content": {
+              "type": "string",
+              "description": "Updated content"
+            }
+          },
+          "required": [
+            "documentId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_add_document_draft",
+        "displayName": "Pm Add Document Draft",
+        "description": "Add document draft to proposal",
+        "modelDescription": "Add document draft to proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content"
+            }
+          },
+          "required": [
+            "proposalId",
+            "title"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_update_document_draft",
+        "displayName": "Pm Update Document Draft",
+        "description": "Update a document draft",
+        "modelDescription": "Update a document draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draftId": {
+              "type": "string",
+              "description": "Draft ID"
+            },
+            "content": {
+              "type": "string",
+              "description": "Updated content"
+            }
+          },
+          "required": [
+            "draftId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_remove_document_draft",
+        "displayName": "Pm Remove Document Draft",
+        "description": "Remove a document draft",
+        "modelDescription": "Remove a document draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draftId": {
+              "type": "string",
+              "description": "Draft ID"
+            }
+          },
+          "required": [
+            "draftId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_create_tasks",
+        "displayName": "Pm Create Tasks",
+        "description": "Create tasks from proposal",
+        "modelDescription": "Create tasks from proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_add_task_draft",
+        "displayName": "Pm Add Task Draft",
+        "description": "Add task draft to proposal",
+        "modelDescription": "Add task draft to proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description"
+            }
+          },
+          "required": [
+            "proposalId",
+            "title"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_update_task_draft",
+        "displayName": "Pm Update Task Draft",
+        "description": "Update a task draft",
+        "modelDescription": "Update a task draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draftId": {
+              "type": "string",
+              "description": "Draft ID"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title"
+            },
+            "description": {
+              "type": "string",
+              "description": "Description"
+            }
+          },
+          "required": [
+            "draftId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_remove_task_draft",
+        "displayName": "Pm Remove Task Draft",
+        "description": "Remove a task draft",
+        "modelDescription": "Remove a task draft",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "draftId": {
+              "type": "string",
+              "description": "Draft ID"
+            }
+          },
+          "required": [
+            "draftId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_assign_task",
+        "displayName": "Pm Assign Task",
+        "description": "Assign a task to a user",
+        "modelDescription": "Assign a task to a user",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "userId": {
+              "type": "string",
+              "description": "User ID"
+            }
+          },
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_start_elaboration",
+        "displayName": "Pm Start Elaboration",
+        "description": "Start proposal elaboration",
+        "modelDescription": "Start proposal elaboration",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_skip_elaboration",
+        "displayName": "Pm Skip Elaboration",
+        "description": "Skip elaboration phase",
+        "modelDescription": "Skip elaboration phase",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_pm_validate_elaboration",
+        "displayName": "Pm Validate Elaboration",
+        "description": "Validate elaboration completeness",
+        "modelDescription": "Validate elaboration completeness",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_add_task_dependency",
+        "displayName": "Add Task Dependency",
+        "description": "Add dependency between tasks",
+        "modelDescription": "Add dependency between tasks",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "dependsOnTaskId": {
+              "type": "string",
+              "description": "Depends on task ID"
+            }
+          },
+          "required": [
+            "taskId",
+            "dependsOnTaskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_remove_task_dependency",
+        "displayName": "Remove Task Dependency",
+        "description": "Remove task dependency",
+        "modelDescription": "Remove task dependency",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "dependsOnTaskId": {
+              "type": "string",
+              "description": "Depends on task ID"
+            }
+          },
+          "required": [
+            "taskId",
+            "dependsOnTaskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_create_project",
+        "displayName": "Admin Create Project",
+        "description": "Create a new project",
+        "modelDescription": "Create a new project",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name"
+            },
+            "description": {
+              "type": "string",
+              "description": "Project description"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_verify_task",
+        "displayName": "Admin Verify Task",
+        "description": "Verify a completed task",
+        "modelDescription": "Verify a completed task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "status": {
+              "type": "string",
+              "description": "Verification status"
+            }
+          },
+          "required": [
+            "taskId",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_close_task",
+        "displayName": "Admin Close Task",
+        "description": "Close a task",
+        "modelDescription": "Close a task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Close reason"
+            }
+          },
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_reopen_task",
+        "displayName": "Admin Reopen Task",
+        "description": "Reopen a closed task",
+        "modelDescription": "Reopen a closed task",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
+          },
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_delete_task",
+        "displayName": "Admin Delete Task",
+        "description": "Delete a task permanently",
+        "modelDescription": "Delete a task permanently",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "string",
+              "description": "Task ID"
+            }
+          },
+          "required": [
+            "taskId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_approve_proposal",
+        "displayName": "Admin Approve Proposal",
+        "description": "Approve a proposal",
+        "modelDescription": "Approve a proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_close_proposal",
+        "displayName": "Admin Close Proposal",
+        "description": "Close a proposal",
+        "modelDescription": "Close a proposal",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "proposalId": {
+              "type": "string",
+              "description": "Proposal ID"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Close reason"
+            }
+          },
+          "required": [
+            "proposalId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_delete_idea",
+        "displayName": "Admin Delete Idea",
+        "description": "Delete an idea",
+        "modelDescription": "Delete an idea",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ideaId": {
+              "type": "string",
+              "description": "Idea ID"
+            }
+          },
+          "required": [
+            "ideaId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_delete_document",
+        "displayName": "Admin Delete Document",
+        "description": "Delete a document",
+        "modelDescription": "Delete a document",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "documentId": {
+              "type": "string",
+              "description": "Document ID"
+            }
+          },
+          "required": [
+            "documentId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_create_project_group",
+        "displayName": "Admin Create Project Group",
+        "description": "Create a project group",
+        "modelDescription": "Create a project group",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Group name"
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_update_project_group",
+        "displayName": "Admin Update Project Group",
+        "description": "Update a project group",
+        "modelDescription": "Update a project group",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupId": {
+              "type": "string",
+              "description": "Group ID"
+            },
+            "name": {
+              "type": "string",
+              "description": "New name"
+            }
+          },
+          "required": [
+            "groupId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_delete_project_group",
+        "displayName": "Admin Delete Project Group",
+        "description": "Delete a project group",
+        "modelDescription": "Delete a project group",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "groupId": {
+              "type": "string",
+              "description": "Group ID"
+            }
+          },
+          "required": [
+            "groupId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_admin_move_project_to_group",
+        "displayName": "Admin Move Project To Group",
+        "description": "Move project to a group",
+        "modelDescription": "Move project to a group",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            },
+            "groupId": {
+              "type": "string",
+              "description": "Group ID"
+            }
+          },
+          "required": [
+            "projectId",
+            "groupId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_mark_acceptance_criteria",
+        "displayName": "Mark Acceptance Criteria",
+        "description": "Mark acceptance criteria status",
+        "modelDescription": "Mark acceptance criteria status",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "criteriaId": {
+              "type": "string",
+              "description": "Criteria ID"
+            },
+            "status": {
+              "type": "string",
+              "description": "Status"
+            }
+          },
+          "required": [
+            "criteriaId",
+            "status"
+          ]
+        }
+      },
+      {
+        "name": "chorus_get_presence",
+        "displayName": "Get Presence",
+        "description": "Get presence info for a user",
+        "modelDescription": "Get presence info for a user",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "userId": {
+              "type": "string",
+              "description": "User ID"
+            }
+          },
+          "required": [
+            "userId"
+          ]
+        }
+      },
+      {
+        "name": "chorus_list_presence",
+        "displayName": "List Presence",
+        "description": "List all online presences",
+        "modelDescription": "List all online presences",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "description": "Project ID"
+            }
+          }
+        }
+      },
+      {
+        "name": "chorus_search_presence",
+        "displayName": "Search Presence",
+        "description": "Search presence by criteria",
+        "modelDescription": "Search presence by criteria",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query"
+            }
+          },
+          "required": [
+            "query"
+          ]
         }
       }
     ],
@@ -118,7 +1850,8 @@
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --outdir=dist --platform=node --external:vscode --format=cjs --sourcemap",
     "watch": "npm run build -- --watch",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "generate:tools": "npx tsx scripts/generate-package-tools.ts"
   },
   "devDependencies": {
     "@types/vscode": "^1.95.0",

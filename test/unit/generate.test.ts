@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const root = join(import.meta.dirname, '..', '..');
+const root = join(new URL('.', import.meta.url).pathname, '..', '..');
 
 // Run the generator script
 execSync('npx tsx scripts/generate-package-tools.ts', { cwd: root, stdio: 'pipe' });
