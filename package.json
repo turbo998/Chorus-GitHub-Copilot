@@ -1872,7 +1872,14 @@
           "items": {
             "type": "string"
           },
-          "default": ["public", "developer", "session", "pm", "admin", "presence"],
+          "default": [
+            "public",
+            "developer",
+            "session",
+            "pm",
+            "admin",
+            "presence"
+          ],
           "description": "Tool modules to enable"
         },
         "chorus.requestTimeout": {
@@ -1892,7 +1899,10 @@
     "build": "esbuild src/extension.ts --bundle --outdir=dist --platform=node --external:vscode --format=cjs --sourcemap",
     "watch": "npm run build -- --watch",
     "package": "vsce package --no-dependencies",
-    "generate:tools": "npx tsx scripts/generate-package-tools.ts"
+    "generate:tools": "npx tsx scripts/generate-package-tools.ts",
+    "test": "npx tsx test/run-all.ts",
+    "test:unit": "npx tsx test/run-all.ts",
+    "test:integration": "npx tsx test/integration/full-workflow.test.ts"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
