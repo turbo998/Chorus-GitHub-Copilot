@@ -1951,7 +1951,7 @@
     "@types/jest": "^30.0.0",
     "@types/vscode": "^1.95.0",
     "@vscode/vsce": "^3.0.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.28.2",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
     "typescript": "^5.0.0",
